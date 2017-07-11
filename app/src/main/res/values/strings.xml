@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">SatViewer</string>
+    <string name="error_msg">An error has occurred. Please try again.</string>
+    <string name="title_activity_satellites_list">SatellitesListActivity</string>
+    <string name="correct_orientation">Please rotate device</string>
+    <string name="permission_missing_message">Permission not granted</string>
+</resources>
