@@ -41,7 +41,6 @@ public final class DeviceSensorUtils {
      * @param context Current context
      * @param deviceAzimuth Azimuth of the device
      * @param devicePitch Pitch of the device
-     * @param deviceRoll Roll of the device
      * @param mSatellite The satellite
      * @param location location of the device
      * @return the direction to be shown on device
@@ -58,20 +57,14 @@ public final class DeviceSensorUtils {
 
         SatPos satellitePosition = mSatellite.getPosition(mDevicePosition, now);
 
-        double satAzimuth = satellitePosition.getAzimuth() * 180 / Math.PI;
+        double satAzimuth = Math.toDegrees(satellitePosition.getAzimuth());
 
         // Bringing the azimuth to a [-180,180]
         if(satAzimuth > 180) {
             satAzimuth -= 360;
         }
 
-        double satElevation = satellitePosition.getElevation() * 180 / Math.PI;
-
-        // Translating the 0 and bringing the elevation to a [-180,180]
-        satElevation += 90;
-        if (satElevation > 180) {
-            satElevation -= 360;
-        }
+        double satElevation = Math.toDegrees(satellitePosition.getElevation());
 
         // Calculating the difference between the satellite look angle
         // and device look angle
@@ -84,33 +77,31 @@ public final class DeviceSensorUtils {
         }
 
         double diffElevation = satElevation - deviceElevation;
-        if(diffElevation > 180){
-            diffElevation -= 360;
+        if(diffElevation > 90){
+            diffElevation -= 180;
         }
-        else if(diffElevation <-180){
-            diffElevation += 360;
+        else if(diffElevation <-90){
+            diffElevation += 180;
         }
-
-        diffElevation *= getScreenRotationOnPhone(context);
 
         // Finally getting the direction
         direction = Direction.CENTER;
         if(  diffElevation < -1 * VIEW_ANGLE) {
-            direction = Direction.UP;
-            if( diffAzimuth < -1 * VIEW_ANGLE){
-                direction = Direction.UP_LEFT;
-            }
-            else if (diffAzimuth > VIEW_ANGLE) {
-                direction = Direction.UP_RIGHT;
-            }
-        }
-        else if(diffElevation > VIEW_ANGLE){
             direction = Direction.DOWN;
             if( diffAzimuth < -1 * VIEW_ANGLE){
                 direction = Direction.DOWN_LEFT;
             }
             else if (diffAzimuth > VIEW_ANGLE) {
                 direction = Direction.DOWN_RIGHT;
+            }
+        }
+        else if(diffElevation > VIEW_ANGLE){
+            direction = Direction.DOWN;
+            if( diffAzimuth < -1 * VIEW_ANGLE){
+                direction = Direction.UP_LEFT;
+            }
+            else if (diffAzimuth > VIEW_ANGLE) {
+                direction = Direction.UP_RIGHT;
             }
         }
         else {
@@ -121,7 +112,7 @@ public final class DeviceSensorUtils {
             }
         }
 
-//        Log.d("TAG", diffAzimuth + " " + diffElevation);
+        Log.d("TAG", "Azimuth: " + deviceAzimuth + " "  + satAzimuth + " Pitch: " + deviceElevation  + " " + satElevation);
         return direction;
     }
 
@@ -156,28 +147,6 @@ public final class DeviceSensorUtils {
                 return "Center";
             default:
                 return null;
-        }
-    }
-
-    private static int getScreenRotationOnPhone(Context context) {
-
-        final Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-
-        switch (display.getRotation()) {
-            case Surface.ROTATION_0:
-                return 1;
-
-            case Surface.ROTATION_90:
-                return 1;
-
-            case Surface.ROTATION_180:
-                return -1;
-
-            case Surface.ROTATION_270:
-                return -1;
-
-            default:
-                return 0;
         }
     }
 }

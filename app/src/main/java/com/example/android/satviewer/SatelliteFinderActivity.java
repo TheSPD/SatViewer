@@ -188,8 +188,9 @@ public class SatelliteFinderActivity extends AppCompatActivity implements
 
             // The values
             double azimuth = (float) (Math.toDegrees(orientation[0]) + geomagneticField.getDeclination()); //Azimuth; (Degrees);
-            double pitch = (float) Math.toDegrees(orientation[1]); //Pitch; (Degrees); down is 90 , up is -90.
+            double pitch = (float) Math.toDegrees(orientation[1]) * -1; //Pitch; (Degrees); down is 90 , up is -90.
 
+//            Log.d("TAG", "Azimuth: " + azimuth + " Pitch: " + pitch);
             // Get the direction to point the device so it match satellite position
             DeviceSensorUtils.Direction dir = DeviceSensorUtils.getDirection(this, azimuth, pitch, mSatellite, mLocation);
             String dirString = DeviceSensorUtils.getDirectionString(dir);
@@ -201,7 +202,7 @@ public class SatelliteFinderActivity extends AppCompatActivity implements
 
     /**
      * Shows the direction
-     * @param dirString direction as strng
+     * @param dirString direction as string
      */
     private void showDirection(String dirString) {
         mProgressBar.setVisibility(View.INVISIBLE);
