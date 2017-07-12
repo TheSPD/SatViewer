@@ -3,6 +3,7 @@ package com.example.android.satviewer;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.GeomagneticField;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -16,6 +17,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -23,6 +25,8 @@ import android.widget.TextView;
 import com.example.android.satviewer.utilities.DeviceSensorUtils;
 import com.example.android.satviewer.utilities.SatelliteUtils;
 import com.google.gson.Gson;
+
+import java.util.Date;
 
 import uk.me.g4dpz.satellite.Satellite;
 import uk.me.g4dpz.satellite.SatelliteFactory;
@@ -53,12 +57,11 @@ public class SatelliteFinderActivity extends AppCompatActivity implements
     SensorManager sensorManager;
 
     // To hold the device senors
-    Sensor accelerometer;
-    Sensor magnetometer;
+    Sensor rotVector;
 
     // Hold accelerometer and magnetic sensor attributes
-    float[] mGravity;
-    float[] mGeomagnetic;
+    float[] mRotationMatrix;
+    float[] mOutRotationMatrix;
 
     // A code for storing the permissions while asking for permissions
     final static int M_LOCATION_PERMISSION_CODE = 1234;
@@ -87,9 +90,7 @@ public class SatelliteFinderActivity extends AppCompatActivity implements
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
         // Initialize the sensors
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-
+        rotVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
         // Asking for permissions if not granted already and start by getting the location
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -150,8 +151,7 @@ public class SatelliteFinderActivity extends AppCompatActivity implements
      * Request for device orientation by registering sensors
      */
     private void getOrientation() {
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+        sensorManager.registerListener(this, rotVector, SensorManager.SENSOR_DELAY_UI);
     }
 
     /**
@@ -161,38 +161,41 @@ public class SatelliteFinderActivity extends AppCompatActivity implements
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
 
-        // Store the values from each sensor
-        if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
-            mGravity = sensorEvent.values;
-        if (sensorEvent.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
-            mGeomagnetic = sensorEvent.values;
+        // Making sure it is the sensor we want
+        switch (sensorEvent.sensor.getType()) {
 
-        // Make sure that we have both the sensor values
-        if (mGravity != null && mGeomagnetic != null) {
-            float R[] = new float[9];
-            float I[] = new float[9];
+            case Sensor.TYPE_ROTATION_VECTOR:
+                mRotationMatrix = new float[16];
+                SensorManager.getRotationMatrixFromVector(mRotationMatrix, sensorEvent.values);
+                break;
+            default:
+                return;
+        }
 
-            // Get the rotation matrix
-            boolean success = SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic);
-            if (success) {
+        if(mRotationMatrix != null) {
+            float orientation[] = new float[3];
+            mOutRotationMatrix = new float[16];
 
-                // get orientation
-                float orientation[] = new float[3];
-                SensorManager.getOrientation(R, orientation);
+            // Remapping for landscape mode
+            SensorManager.remapCoordinateSystem(mRotationMatrix, SensorManager.AXIS_X,
+                    SensorManager.AXIS_Z, mOutRotationMatrix);   // Remap coordinate System to compensate for the landscape position of device
+            SensorManager.getOrientation(mOutRotationMatrix, orientation);
 
-                // Convert to degrees
-                double azimuth = orientation[0] * 180 / Math.PI; // orientation contains: azimuth, pitch and roll
-                double pitch = orientation[1] * 180 / Math.PI;
-                double roll = orientation[2] * 180 / Math.PI;
+            // Adjustment for True north
+            GeomagneticField geomagneticField = new GeomagneticField((float) mLocation.getLatitude(),
+                    (float) mLocation.getLongitude(), (float) mLocation.getAltitude(),
+                    new Date().getTime());
 
-                // Get the direction to point the device so it match satellite position
-                DeviceSensorUtils.Direction dir = DeviceSensorUtils.getDirection(this, azimuth, pitch, roll, mSatellite, mLocation);
-                String dirString = DeviceSensorUtils.getDirectionString(dir);
+            // The values
+            double azimuth = (float) (Math.toDegrees(orientation[0]) + geomagneticField.getDeclination()); //Azimuth; (Degrees);
+            double pitch = (float) Math.toDegrees(orientation[1]); //Pitch; (Degrees); down is 90 , up is -90.
 
-                // Show the appropriate direction
-                showDirection(dirString);
+            // Get the direction to point the device so it match satellite position
+            DeviceSensorUtils.Direction dir = DeviceSensorUtils.getDirection(this, azimuth, pitch, mSatellite, mLocation);
+            String dirString = DeviceSensorUtils.getDirectionString(dir);
 
-            }
+            // Show the appropriate direction
+            showDirection(dirString);
         }
     }
 

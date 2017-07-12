@@ -46,15 +46,11 @@ public final class DeviceSensorUtils {
      * @param location location of the device
      * @return the direction to be shown on device
      */
-    public static Direction getDirection(Context context, double deviceAzimuth, double devicePitch, double deviceRoll, Satellite mSatellite, Location location){
+    public static Direction getDirection(Context context, double deviceAzimuth, double devicePitch, Satellite mSatellite, Location location){
         int orientation = context.getResources().getConfiguration().orientation;
         Direction direction = null;
 
-        if(orientation != Configuration.ORIENTATION_LANDSCAPE){
-            return direction;
-        }
-
-        double deviceElevation = deviceRoll;
+        double deviceElevation = devicePitch;
         GroundStationPosition mDevicePosition = new GroundStationPosition(location.getLatitude(),
                 location.getLongitude(),
                 location.getAltitude());
@@ -125,7 +121,7 @@ public final class DeviceSensorUtils {
             }
         }
 
-        Log.d("TAG", diffAzimuth + " " + diffElevation);
+//        Log.d("TAG", diffAzimuth + " " + diffElevation);
         return direction;
     }
 
@@ -169,13 +165,13 @@ public final class DeviceSensorUtils {
 
         switch (display.getRotation()) {
             case Surface.ROTATION_0:
-                return 0;
+                return 1;
 
             case Surface.ROTATION_90:
                 return 1;
 
             case Surface.ROTATION_180:
-                return 0;
+                return -1;
 
             case Surface.ROTATION_270:
                 return -1;
