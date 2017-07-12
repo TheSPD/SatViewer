@@ -4,6 +4,9 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.location.Location;
 import android.util.Log;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
 
 import java.util.Date;
 
@@ -92,24 +95,26 @@ public final class DeviceSensorUtils {
             diffElevation += 360;
         }
 
+        diffElevation *= getScreenRotationOnPhone(context);
+
         // Finally getting the direction
         direction = Direction.CENTER;
         if(  diffElevation < -1 * VIEW_ANGLE) {
-            direction = Direction.DOWN;
-            if( diffAzimuth < -1 * VIEW_ANGLE){
-                direction = Direction.DOWN_LEFT;
-            }
-            else if (diffAzimuth > VIEW_ANGLE) {
-                direction = Direction.DOWN_RIGHT;
-            }
-        }
-        else if(diffElevation > VIEW_ANGLE){
             direction = Direction.UP;
             if( diffAzimuth < -1 * VIEW_ANGLE){
                 direction = Direction.UP_LEFT;
             }
             else if (diffAzimuth > VIEW_ANGLE) {
                 direction = Direction.UP_RIGHT;
+            }
+        }
+        else if(diffElevation > VIEW_ANGLE){
+            direction = Direction.DOWN;
+            if( diffAzimuth < -1 * VIEW_ANGLE){
+                direction = Direction.DOWN_LEFT;
+            }
+            else if (diffAzimuth > VIEW_ANGLE) {
+                direction = Direction.DOWN_RIGHT;
             }
         }
         else {
@@ -155,6 +160,28 @@ public final class DeviceSensorUtils {
                 return "Center";
             default:
                 return null;
+        }
+    }
+
+    private static int getScreenRotationOnPhone(Context context) {
+
+        final Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+
+        switch (display.getRotation()) {
+            case Surface.ROTATION_0:
+                return 0;
+
+            case Surface.ROTATION_90:
+                return 1;
+
+            case Surface.ROTATION_180:
+                return 0;
+
+            case Surface.ROTATION_270:
+                return -1;
+
+            default:
+                return 0;
         }
     }
 }
