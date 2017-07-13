@@ -46,7 +46,6 @@ public final class DeviceSensorUtils {
      * @return the direction to be shown on device
      */
     public static Direction getDirection(Context context, double deviceAzimuth, double devicePitch, Satellite mSatellite, Location location){
-        int orientation = context.getResources().getConfiguration().orientation;
         Direction direction = null;
 
         double deviceElevation = devicePitch;
@@ -77,12 +76,6 @@ public final class DeviceSensorUtils {
         }
 
         double diffElevation = satElevation - deviceElevation;
-        if(diffElevation > 90){
-            diffElevation -= 180;
-        }
-        else if(diffElevation <-90){
-            diffElevation += 180;
-        }
 
         // Finally getting the direction
         direction = Direction.CENTER;
@@ -96,7 +89,7 @@ public final class DeviceSensorUtils {
             }
         }
         else if(diffElevation > VIEW_ANGLE){
-            direction = Direction.DOWN;
+            direction = Direction.UP;
             if( diffAzimuth < -1 * VIEW_ANGLE){
                 direction = Direction.UP_LEFT;
             }
